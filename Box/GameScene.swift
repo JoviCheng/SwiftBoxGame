@@ -24,6 +24,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     var makingBox = false
     var touchButton = false
     var currentBox : SKSpriteNode?
+    var score : Int = 0
     
 //    let box = SKSpriteNode(color: .red,
 //                              size: CGSize(width: 50, height: 50))
@@ -32,25 +33,39 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         physicsWorld.contactDelegate = self
         
         let borderBody = SKPhysicsBody(edgeLoopFrom: self.frame)
-        print(frame.size)
-        print(self.frame.size)
-        print(view.frame.size)
+//        print(frame.size)
+//        print(self.frame.size)
+//        print(view.frame.size)
         borderBody.friction = 1
         borderBody.restitution = 0
         self.physicsBody = borderBody
-        
-        let bottomRect = CGRect(x: frame.origin.x, y: frame.origin.y, width: frame.size.width, height: 1)
-        let bottom = SKNode()
-        bottom.physicsBody = SKPhysicsBody(edgeLoopFrom: bottomRect)
-        addChild(bottom)
-        
-        bottom.physicsBody!.categoryBitMask = BottomCategory
+    
         initGame()
     }
     
     func initGame(){
         self.removeAllChildren()
         self.removeAllActions()
+        score = 0
+        let bottomRect = CGRect(x: self.frame.origin.x, y: self.frame.origin.y, width: self.frame.size.width, height: 5)
+        //        let bottomRect = CGRect(x: 0, y: 0, width: self.frame.size.width, height: 5)
+        print("bottomRect ",bottomRect)
+        //        let bottom = SKNode()
+        let bottom = SKSpriteNode()
+        //        bottomRect.ciolor
+//        bottom.position = CGPoint(x: 25, y: 25)
+//        bottom.size = CGSize(width: self.frame.size.width, height: 5)
+        bottom.physicsBody = SKPhysicsBody(edgeLoopFrom: bottomRect)
+        bottom.physicsBody?.friction = 1
+        bottom.physicsBody?.restitution = 0
+        bottom.color = UIColor.white
+        bottom.name = "FuckuBottom"
+//        print(bottom)
+        self.addChild(bottom)
+        
+        bottom.physicsBody!.categoryBitMask = BottomCategory
+//        print("front",bottom.physicsBody!.categoryBitMask)
+        
         restartButton = SKLabelNode()
         restartButton.position = CGPoint(x: view!.frame.size.width - restartButton.frame.size.width, y: (self.frame.height-self.size.height)/2)
         restartButton.horizontalAlignmentMode = .center
@@ -66,6 +81,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.claw.physicsBody?.isDynamic = true
         self.claw.physicsBody?.allowsRotation = false
         self.claw.physicsBody?.linearDamping = 0
+        self.claw.name = "Claw"
 //        self.claw.physicsBody?.velocity = CGVector(dx:0.0,dy:0.0)
         self.addChild(self.claw)
         self.claw.removeAllChildren()
@@ -90,18 +106,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         box.physicsBody?.friction = 1
         box.physicsBody?.restitution = 0
         box.position.y -= 20
-//        box.physicsBody?.pinned = true
-//        box.run(moveNodeUp,withKey: "boxMoving")
         self.currentBox = box
-//        print(self.currentBox)
         self.claw.addChild(box)
-//        let joint = SKPhysicsJointPin.joint(withBodyA: self.claw.physicsBody!,
-//                                            bodyB: box.physicsBody!,
-//                                            anchor: CGPoint(x: self.claw.frame.midX, y: self.claw.frame.midY))
-//        physicsWorld.add(joint)
         self.makingBox = false
 //        clawMove()
-        print(box.position)
+//        print(box.position)
     }
     
     func clawMove(currentNode:SKSpriteNode){
@@ -125,14 +134,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
 //        self.touchButton = false
         self.makingBox = true
-        self.currentBox!.physicsBody?.categoryBitMask = BoxCategory
-        self.currentBox!.physicsBody?.contactTestBitMask = BottomCategory
+        self.currentBox!.name = "CurrentBox"
         self.currentBox!.position = CGPoint(x:self.claw.position.x,y:self.claw.position.y-20)
         self.currentBox!.removeAllActions()
         self.currentBox!.physicsBody?.affectedByGravity = true
         self.currentBox!.physicsBody?.allowsRotation = true
         self.currentBox!.removeFromParent()
         self.addChild(self.currentBox!)
+        self.currentBox!.physicsBody?.categoryBitMask = BoxCategory
+        self.currentBox!.physicsBody?.contactTestBitMask = BottomCategory
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.6) {
             self.createBox()
         }
@@ -140,13 +150,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     
     func didBegin(_ contact: SKPhysicsContact) {
-        print("happend")
-        // 1
+//        print(contact.bodyA.node?.name as Any)
+//        print(contact.bodyB)
+        if (contact.bodyA.node?.name != "Claw"){
         var firstBody: SKPhysicsBody
         var secondBody: SKPhysicsBody
-        print(contact.bodyA.categoryBitMask)
-        print(contact.bodyB.categoryBitMask)
-        // 2
         if contact.bodyA.categoryBitMask < contact.bodyB.categoryBitMask {
             firstBody = contact.bodyA
             secondBody = contact.bodyB
@@ -154,9 +162,24 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             firstBody = contact.bodyB
             secondBody = contact.bodyA
         }
-        // 3
-        if firstBody.categoryBitMask == BottomCategory && secondBody.categoryBitMask == BoxCategory {
-            print("Hit bottom. First contact has been made.")
+        print("weee")
+        if firstBody.categoryBitMask == BoxCategory && secondBody.categoryBitMask == BottomCategory {
+            //碰到底面的情况
+            if(score == 0){
+                score += 1
+                print("first Hit")
+            }
+            else {
+//                score = 0
+                print("你输左啦，懵仔")
+            }
+        } else {
+            score += 1
+            print("score",score)
+            }
+    }
+        else {
+            print("no enter")
         }
     }
     
@@ -184,8 +207,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         let location = touch.location(in: self)
         if nodes(at: location).contains(restartButton){
             self.touchButton = true
-            print("FUcku ")
-            print(self.touchButton)
+//            print("FUcku ")
+//            print(self.touchButton)
             self.removeAllChildren()
             //在这里我们等会尝试做一些动画效果...
 //            if gameOver {
