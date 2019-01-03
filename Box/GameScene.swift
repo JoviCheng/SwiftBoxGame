@@ -11,20 +11,26 @@ import GameplayKit
 
 let BoxCategory   : UInt32 = 0x1 << 0
 let BottomCategory : UInt32 = 0x1 << 1
+let PreBoxCategory : UInt32 = 0x1 << 2
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
     private var restartButton : SKLabelNode!
+    private var ScoreText : SKLabelNode!
+    private var LvText : SKLabelNode!
     private var spinnyNode : SKShapeNode?
     let boxPro = SKSpriteNode(color: .red,
-                              size: CGSize(width: 240, height: 60))
-    let claw = SKSpriteNode(color: .white,
+                              size: CGSize(width: 240, height: 45))
+    let claw = SKSpriteNode(color: .blue,
                            size: CGSize(width: 240, height: 30))
     
     var makingBox = false
     var touchButton = false
     var currentBox : SKSpriteNode?
+    var tempBox : SKSpriteNode?
+    var preBox: SKSpriteNode?
     var score : Int = 0
+    var lv : Int = 1
     
 //    let box = SKSpriteNode(color: .red,
 //                              size: CGSize(width: 50, height: 50))
@@ -38,8 +44,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 //        print(view.frame.size)
         borderBody.friction = 1
         borderBody.restitution = 0
+//        borderBody.node?.name = "BorderBody"
         self.physicsBody = borderBody
-    
+        scene?.name = "SceneBorder"
         initGame()
     }
     
@@ -47,6 +54,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.removeAllChildren()
         self.removeAllActions()
         score = 0
+        lv = 1
         let bottomRect = CGRect(x: self.frame.origin.x, y: self.frame.origin.y, width: self.frame.size.width, height: 5)
         //        let bottomRect = CGRect(x: 0, y: 0, width: self.frame.size.width, height: 5)
         print("bottomRect ",bottomRect)
@@ -67,12 +75,31 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
 //        print("front",bottom.physicsBody!.categoryBitMask)
         
         restartButton = SKLabelNode()
-        restartButton.position = CGPoint(x: view!.frame.size.width - restartButton.frame.size.width, y: (self.frame.height-self.size.height)/2)
+        restartButton.position = CGPoint(x:(view!.frame.width-120),y:(self.frame.height-80)/2)
         restartButton.horizontalAlignmentMode = .center
         restartButton.fontColor = .white
+        restartButton.zPosition = 999
         restartButton.fontSize = 50
         restartButton.text = "Restart"
         self.addChild(restartButton!)
+        
+        ScoreText = SKLabelNode()
+        ScoreText.position = CGPoint(x:-(view!.frame.width-140),y:(self.frame.height-80)/2)
+        ScoreText.zPosition = 999
+        ScoreText.horizontalAlignmentMode = .center
+        ScoreText.fontColor = .white
+        ScoreText.fontSize = 50
+        ScoreText.text = "\("Score:")\(score)\("/20")"
+        self.addChild(ScoreText)
+        
+        LvText = SKLabelNode()
+        LvText.position = CGPoint(x:-(view!.frame.width-60),y:(self.frame.height-180)/2)
+        LvText.zPosition = 999
+        LvText.horizontalAlignmentMode = .center
+        LvText.fontColor = .white
+        LvText.fontSize = 50
+        LvText.text = "\("Lv:")\(lv)"
+        self.addChild(LvText)
         
         self.claw.position = CGPoint(x:-(view!.frame.width-60),y:(self.frame.height-self.claw.size.height)/2)
         self.claw.zPosition = 1
@@ -86,7 +113,77 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         self.addChild(self.claw)
         self.claw.removeAllChildren()
         self.claw.removeAllActions()
-        clawMove(currentNode: self.claw)
+        clawMove(currentNode: self.claw,currentLv: lv)
+        DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.2) {
+            self.createBox()
+        }
+        self.touchButton = false
+    }
+    
+    func upLevel() {
+        self.removeAllChildren()
+        self.removeAllActions()
+        score = 0
+        lv += 1
+        let bottomRect = CGRect(x: self.frame.origin.x, y: self.frame.origin.y, width: self.frame.size.width, height: 5)
+        //        let bottomRect = CGRect(x: 0, y: 0, width: self.frame.size.width, height: 5)
+        print("bottomRect ",bottomRect)
+        //        let bottom = SKNode()
+        let bottom = SKSpriteNode()
+        //        bottomRect.ciolor
+        //        bottom.position = CGPoint(x: 25, y: 25)
+        //        bottom.size = CGSize(width: self.frame.size.width, height: 5)
+        bottom.physicsBody = SKPhysicsBody(edgeLoopFrom: bottomRect)
+        bottom.physicsBody?.friction = 1
+        bottom.physicsBody?.restitution = 0
+        bottom.color = UIColor.white
+        bottom.name = "FuckuBottom"
+        //        print(bottom)
+        self.addChild(bottom)
+        
+        bottom.physicsBody!.categoryBitMask = BottomCategory
+        //        print("front",bottom.physicsBody!.categoryBitMask)
+        
+        restartButton = SKLabelNode()
+        restartButton.position = CGPoint(x:(view!.frame.width-120),y:(self.frame.height-80)/2)
+        restartButton.horizontalAlignmentMode = .center
+        restartButton.fontColor = .white
+        restartButton.zPosition = 999
+        restartButton.fontSize = 50
+        restartButton.text = "Restart"
+        self.addChild(restartButton!)
+        
+        ScoreText = SKLabelNode()
+        ScoreText.position = CGPoint(x:-(view!.frame.width-140),y:(self.frame.height-80)/2)
+        ScoreText.zPosition = 999
+        ScoreText.horizontalAlignmentMode = .center
+        ScoreText.fontColor = .white
+        ScoreText.fontSize = 50
+        ScoreText.text = "\("Score:")\(score)\("/20")"
+        self.addChild(ScoreText)
+        
+        LvText = SKLabelNode()
+        LvText.position = CGPoint(x:-(view!.frame.width-60),y:(self.frame.height-180)/2)
+        LvText.zPosition = 999
+        LvText.horizontalAlignmentMode = .center
+        LvText.fontColor = .white
+        LvText.fontSize = 50
+        LvText.text = "\("Lv:")\(lv)"
+        self.addChild(LvText)
+
+        self.claw.position = CGPoint(x:-(view!.frame.width-60),y:(self.frame.height-self.claw.size.height)/2)
+        self.claw.zPosition = 1
+        self.claw.physicsBody = SKPhysicsBody(rectangleOf:self.claw.frame.size)
+        self.claw.physicsBody?.affectedByGravity = false
+        self.claw.physicsBody?.isDynamic = true
+        self.claw.physicsBody?.allowsRotation = false
+        self.claw.physicsBody?.linearDamping = 0
+        self.claw.name = "Claw"
+        //        self.claw.physicsBody?.velocity = CGVector(dx:0.0,dy:0.0)
+        self.addChild(self.claw)
+        self.claw.removeAllChildren()
+        self.claw.removeAllActions()
+        clawMove(currentNode: self.claw,currentLv: lv)
         DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 0.2) {
             self.createBox()
         }
@@ -106,16 +203,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         box.physicsBody?.friction = 1
         box.physicsBody?.restitution = 0
         box.position.y -= 20
-        self.currentBox = box
+        self.tempBox = box
         self.claw.addChild(box)
         self.makingBox = false
 //        clawMove()
 //        print(box.position)
     }
     
-    func clawMove(currentNode:SKSpriteNode){
-        let moveLeft = SKAction.moveBy(x: -((view!.frame.width*2)-60),y: 0.0,duration: 1.5)
-        let moveRight = SKAction.moveBy(x: (view!.frame.width*2)-60,y: 0.0,duration: 1.5)
+    func clawMove(currentNode:SKSpriteNode,currentLv:Int){
+        let moveLeft = SKAction.moveBy(x: -((view!.frame.width*2)-60),y: 0.0,duration: 1.5-(0.05*Double(currentLv) as Double))
+        let moveRight = SKAction.moveBy(x: (view!.frame.width*2)-60,y: 0.0,duration: 1.5-(0.05*Double(currentLv) as Double))
 
 //        let moveLeft = SKAction.moveBy(x: -50,y: 0.0,duration: 1.0)
 //        let moveRight = SKAction.moveBy(x: 50,y: 0.0,duration: 1.0)
@@ -133,6 +230,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             return
         }
 //        self.touchButton = false
+        self.currentBox = self.tempBox
         self.makingBox = true
         self.currentBox!.name = "CurrentBox"
         self.currentBox!.position = CGPoint(x:self.claw.position.x,y:self.claw.position.y-20)
@@ -150,9 +248,11 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     
     func didBegin(_ contact: SKPhysicsContact) {
-//        print(contact.bodyA.node?.name as Any)
+//        print(contact.bodyA)
 //        print(contact.bodyB)
-        if (contact.bodyA.node?.name != "Claw"){
+        if (contact.bodyA.node?.name != "Claw" && contact.bodyB.node?.name != "Claw" && (contact.bodyA.node?.name != "SceneBorder" && contact.bodyB.node?.name != "SceneBorder")){
+//            print(contact.bodyA)
+//            print(contact.bodyB)
         var firstBody: SKPhysicsBody
         var secondBody: SKPhysicsBody
         if contact.bodyA.categoryBitMask < contact.bodyB.categoryBitMask {
@@ -167,7 +267,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             //碰到底面的情况
             if(score == 0){
                 score += 1
+                ScoreText.text = "\("Score:")\(score)\("/20")"
                 print("first Hit")
+                preBox = currentBox
+                preBox!.physicsBody?.categoryBitMask = PreBoxCategory
+                preBox?.name = "PreBox"
+                preBox!.physicsBody?.contactTestBitMask = BoxCategory
             }
             else {
 //                score = 0
@@ -175,13 +280,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             }
         } else {
             score += 1
+            ScoreText.text = "\("Score:")\(score)\("/20")"
+            if(score == 20){
+                upLevel()
+            }
+            else {
+            preBox = currentBox
+            preBox!.physicsBody?.categoryBitMask = PreBoxCategory
+            preBox!.physicsBody?.contactTestBitMask = BoxCategory
             print("score",score)
             }
+            }
     }
-        else {
-            print("no enter")
-        }
-    }
+}
     
     func touchMoved(toPoint pos : CGPoint) {
 //        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
